@@ -1,0 +1,1 @@
+# Android-app-and-web-dashboard-for-real-time-inventory-management-with-offline-first-synchronization
