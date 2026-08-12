@@ -1,10 +1,10 @@
-# 📦 InventoryApp
+# 📦 Warehouse inventory platform
 
 ---
 
 ## 🎯 About
 
-**InventoryApp** is a multi-platform inventory management system designed to simplify warehouse operations through barcode scanning, offline-first functionality, automatic synchronization, and role-based access control.
+**Warehouse inventory platform** is a multi-platform inventory management system designed to simplify warehouse operations through barcode scanning, offline-first functionality, automatic synchronization, and role-based access control.
 
 The system consists of:
 
