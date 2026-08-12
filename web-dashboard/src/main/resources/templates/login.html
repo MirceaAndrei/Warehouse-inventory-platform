@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Inventory System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/theme.css">
+    <style>
+        body {
+            min-height: 100vh;
+            background: #0c0e1a !important;
+            margin: 0;
+        }
+        /* ── Login wrapper — always dark/space background ── */
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                linear-gradient(rgba(102, 126, 234, 0.05) 1px, transparent 1px) 0 0 / 48px 48px,
+                linear-gradient(90deg, rgba(102, 126, 234, 0.05) 1px, transparent 1px) 0 0 / 48px 48px,
+                linear-gradient(135deg, #0c0e1a 0%, #121530 50%, #0d1225 100%);
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+        }
+        /* Right glow orb */
+        .login-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -25%;
+            right: -15%;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.18) 0%, transparent 65%);
+            border-radius: 50%;
+            animation: floatOrb 22s ease-in-out infinite;
+            pointer-events: none;
+        }
+        /* Bottom-left glow orb */
+        .login-wrapper::after {
+            content: '';
+            position: absolute;
+            bottom: -25%;
+            left: -15%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(118, 75, 162, 0.18) 0%, transparent 65%);
+            border-radius: 50%;
+            animation: floatOrb 18s ease-in-out infinite reverse;
+            pointer-events: none;
+        }
+        @keyframes floatOrb {
+            0%,100% { transform: translate(0,0) scale(1); }
+            33%      { transform: translate(40px, 30px) scale(1.04); }
+            66%      { transform: translate(-20px, 50px) scale(0.96); }
+        }
+        /* ── Card ── */
+        .login-container {
+            position: relative;
+            z-index: 1;
+            max-width: 430px;
+            width: 100%;
+        }
+        .login-card {
+            background: #141728;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.6),
+                0 0 80px rgba(102, 126, 234, 0.1);
+            animation: cardAppear 0.5s ease-out;
+        }
+        @keyframes cardAppear {
+            from { opacity: 0; transform: translateY(24px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+        /* ── Header ── */
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 28px 32px 24px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .login-header::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(rgba(255,255,255,0.06) 0%, transparent 100%);
+        }
+        .login-header .icon-circle {
+            width: 68px;
+            height: 68px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 20px rgba(255,255,255,0.1);
+            position: relative;
+            z-index: 1;
+        }
+        .login-header .icon-circle i { font-size: 30px; }
+        .login-header h2 {
+            font-size: 1.55rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            position: relative;
+            z-index: 1;
+        }
+        .login-header p {
+            opacity: 0.85;
+            margin: 0;
+            font-size: 0.85rem;
+            position: relative;
+            z-index: 1;
+        }
+        /* ── Body ── */
+        .login-body {
+            padding: 28px 32px 24px;
+        }
+        .form-label {
+            color: rgba(200, 210, 240, 0.9);
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        .form-control, .input-group-text {
+            border-radius: 10px;
+            padding: 10px 13px;
+            font-size: 0.9rem;
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(102, 126, 234, 0.25);
+            color: #e4e8f5;
+        }
+        .input-group-text {
+            border-right: none;
+            background: rgba(255,255,255,0.05);
+            color: rgba(200, 210, 240, 0.7);
+        }
+        .form-control {
+            border-left: none;
+        }
+        .form-control::placeholder { color: rgba(180,190,220,0.4); }
+        .form-control:focus {
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            border-color: rgba(102, 126, 234, 0.6);
+            background: rgba(255,255,255,0.09);
+            color: #e4e8f5;
+        }
+        .form-control:focus + * { border-color: rgba(102, 126, 234, 0.6); }
+        /* ── Login button ── */
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 11px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: white;
+            letter-spacing: 0.3px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(102, 126, 234, 0.45);
+            color: white;
+        }
+        .btn-login:active { transform: translateY(0); }
+        /* ── Demo credentials ── */
+        .demo-credentials {
+            margin-top: 16px;
+            padding: 12px 14px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.18);
+            border-radius: 10px;
+            font-size: 0.74rem;
+            text-align: center;
+            color: rgba(200, 210, 240, 0.75);
+        }
+        .demo-credentials .credential {
+            display: inline-block;
+            margin: 2px 4px;
+            padding: 2px 8px;
+            background: rgba(255,255,255,0.07);
+            border-radius: 5px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            font-size: 0.7rem;
+            font-family: monospace;
+            color: #b0bcf5;
+        }
+        .demo-credentials strong { color: #a0b0ff; font-weight: 600; }
+        /* ── Register link ── */
+        .register-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.84rem;
+            color: rgba(200, 210, 240, 0.65);
+        }
+        .register-link a {
+            color: #a0b0f0;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .register-link a:hover { color: #c0c8ff; text-decoration: underline; }
+        /* Alert in dark context */
+        .alert-danger { background: rgba(239, 68, 68, 0.15); border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+        .alert-success { background: rgba(16, 185, 129, 0.15); border-color: rgba(16,185,129,0.3); color: #6ee7b7; }
+    </style>
+</head>
+<body>
+    <!-- Login Wrapper cu gradient modern -->
+    <div class="login-wrapper">
+        <div class="login-container">
+            <div class="login-card">
+                <!-- Header cu gradient violet -->
+                <div class="login-header">
+                    <div class="icon-circle">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h2>Welcome.</h2>
+                    <p>Sign in to access your dashboard</p>
+                </div>
+                
+                <!-- Body cu form -->
+                <div class="login-body">
+                    <div id="alert-container"></div>
+                    
+                    <form id="loginForm">
+                        <div class="mb-2">
+                            <label class="form-label mb-1">Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <input type="text" class="form-control" id="username" placeholder="Enter username" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label mb-1">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input type="password" class="form-control" id="password" placeholder="Enter password" required>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-login w-100" id="loginBtn">
+                            <i class="fas fa-sign-in-alt me-2"></i>LOGIN
+                        </button>
+                    </form>
+                    
+                    <!-- Demo credentials discrete -->
+                    <div class="demo-credentials">
+                        <small class="text-muted d-block mb-2"><i class="fas fa-info-circle"></i> Demo accounts:</small>
+                        <div class="credential">
+                            <strong>admin</strong> / admin123
+                        </div>
+                        <div class="credential">
+                            <strong>manager</strong> / manager123
+                        </div>
+                        <div class="credential">
+                            <strong>employee</strong> / employee123
+                        </div>
+                    </div>
+                    
+                    <!-- Register link -->
+                    <div class="register-link">
+                        <span>Not a member?</span>
+                        <a href="/register" class="text-decoration-none fw-bold">Sign up now</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const alertContainer = document.getElementById('alert-container');
+            
+            // Disable button
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Logging in...';
+            
+            try {
+                const response = await fetch('http://localhost:8082/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Save token and user info in sessionStorage
+                    sessionStorage.setItem('token', data.token);
+                    sessionStorage.setItem('username', data.username);
+                    sessionStorage.setItem('email', data.email);
+                    sessionStorage.setItem('role', data.role);
+                    sessionStorage.setItem('mustChangePassword', data.mustChangePassword);
+                    
+                    // Show success message
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-success" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>Login successful! Redirecting...
+                        </div>
+                    `;
+                    
+                    // Check if password change is required
+                    if (data.mustChangePassword) {
+                        setTimeout(() => window.location.href = '/profile', 1000);
+                    } else {
+                        setTimeout(() => window.location.href = '/home', 1000);
+                    }
+                } else {
+                    // Show error message
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>${data.error || 'Login failed'}
+                        </div>
+                    `;
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Login';
+                }
+            } catch (error) {
+                alertContainer.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i>Connection error. Make sure backend is running.
+                    </div>
+                `;
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Login';
+            }
+        });
+        
+        // Check if already logged in
+        if (sessionStorage.getItem('token')) {
+            window.location.href = '/inventory';
+        }
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/dark-mode.js"></script>
+</body>
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Dashboard — Inventory System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/theme.css">
+</head>
+<body>
+    <div th:replace="fragments/header :: navbar"></div>
+
+    <div class="container mt-4">
+        <!-- Alerte stoc scăzut -->
+        <div id="alertsContainer"></div>
+        
+        <div class="row mb-4">
+            <div class="col">
+                <h2><i class="fas fa-boxes"></i> Inventory Stock</h2>
+            </div>
+            <div class="col text-end">
+                <button class="btn btn-primary" onclick="location.reload()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- Search Bar -->
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="searchInput" placeholder="Search by name, barcode or location...">
+                        </div>
+                    </div>
+                    
+                    <!-- Category Filter -->
+                    <div class="col-md-3">
+                        <select class="form-select" id="categoryFilter">
+                            <option value="">All Categories</option>
+                            <option value="Electronics">Electronics</option>
+                            <option value="Accessories">Accessories</option>
+                            <option value="Office Supplies">Office Supplies</option>
+                            <option value="Furniture">Furniture</option>
+                            <option value="Tools">Tools</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Status Filter -->
+                    <div class="col-md-2">
+                        <select class="form-select" id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="ok">OK</option>
+                            <option value="low">Low Stock</option>
+                            <option value="critical">Critical (≤2)</option>
+                            <option value="out">Out of Stock</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Export CSV Button + Counter -->
+                    <div class="col-md-2">
+                        <button class="btn btn-success w-100" id="exportCSV">
+                            <i class="fas fa-file-csv"></i> Export CSV
+                        </button>
+                        <div class="mt-2 text-center">
+                            <small class="text-muted">
+                                <i class="fas fa-filter me-1"></i>
+                                <span class="badge bg-primary" id="resultsCount">0</span> items
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Items</h5>
+                        <h2 class="text-primary" th:text="${#lists.size(items)}">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Stock</h5>
+                        <h2 class="text-success" th:text="${#aggregates.sum(items.![quantity])}">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Low Stock Items</h5>
+                        <h2 class="text-warning" th:text="${#lists.size(items.?[quantity < minQuantity])}">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Table -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Barcode</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Location</th>
+                                <th>Quantity</th>
+                                <th>Min Quantity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="item : ${items}" data-matched="1"
+                                th:classappend="${item.quantity < item.minQuantity} ? 'low-stock' : ''">
+                                <td><strong th:text="${item.barcode}">-</strong></td>
+                                <td th:text="${item.name}">-</td>
+                                <td>
+                                    <span class="badge bg-secondary" th:text="${item.category}">-</span>
+                                </td>
+                                <td><i class="fas fa-map-marker-alt"></i> <span th:text="${item.location}">-</span></td>
+                                <td>
+                                    <strong th:text="${item.quantity}">0</strong>
+                                </td>
+                                <td th:text="${item.minQuantity}">0</td>
+                                <td>
+                                    <span th:if="${item.quantity >= item.minQuantity}" class="badge bg-success">
+                                        <i class="fas fa-check-circle"></i> OK
+                                    </span>
+                                    <span th:if="${item.quantity < item.minQuantity}" class="badge bg-warning text-dark">
+                                        <i class="fas fa-exclamation-triangle"></i> Low Stock
+                                    </span>
+                                    <span th:if="${item.quantity == 0}" class="badge bg-danger">
+                                        <i class="fas fa-times-circle"></i> Out of Stock
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(items)}">
+                                <td colspan="7" class="text-center text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                                    <p>No items in inventory. Make sure backend is running!</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination Footer -->
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small">Rows per page:</span>
+                        <select class="form-select form-select-sm" id="rowsPerPage" style="width:75px">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                        <span class="text-muted small ms-2">Showing <strong id="pageInfo">–</strong> items</span>
+                    </div>
+                    <div id="paginationControls"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/toast.js"></script>
+    <script src="/js/paginator.js"></script>
+    <script>
+        // Check low stock alerts on load
+        async function checkStockAlerts() {
+            try {
+                const response = await fetch('http://localhost:8082/api/alerts/summary');
+                const data = await response.json();
+                
+                if (data.totalAlerts > 0) {
+                    displayAlerts(data);
+                }
+            } catch (error) {
+                console.error('Error fetching alerts:', error);
+            }
+        }
+        
+        function displayAlerts(data) {
+            const container = document.getElementById('alertsContainer');
+            let html = '';
+            
+            if (data.criticalStockCount > 0) {
+                html += `
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <h5 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Critical Stock!</h5>
+                        <p>The following products are in critical stock (≤2 units):</p>
+                        <ul>
+                `;
+                data.criticalStockItems.forEach(item => {
+                    html += `<li><strong>${item.name}</strong> (${item.barcode}): ${item.quantity} units</li>`;
+                });
+                html += `
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+            }
+            
+            if (data.lowStockCount > data.criticalStockCount) {
+                html += `
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <h5 class="alert-heading"><i class="fas fa-exclamation-circle"></i> Low Stock</h5>
+                        <p>${data.lowStockCount - data.criticalStockCount} products have low stock (≤5 units)</p>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // Verifică la încărcare și apoi la fiecare 30 secunde
+        checkStockAlerts();
+        setInterval(checkStockAlerts, 30000);
+
+        // ============================================
+        // SEARCH & FILTER FUNCTIONALITY
+        // ============================================
+        
+        var paginator = null;
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            const rows = document.querySelectorAll('tbody tr[data-matched]');
+            let matchedCount = 0;
+
+            rows.forEach(row => {
+                const barcode = row.children[0]?.textContent.toLowerCase() || '';
+                const name = row.children[1]?.textContent.toLowerCase() || '';
+                const category = row.children[2]?.textContent.trim() || '';
+                const location = row.children[3]?.textContent.toLowerCase() || '';
+                const quantity = parseInt(row.children[4]?.textContent.trim()) || 0;
+                const minQuantity = parseInt(row.children[5]?.textContent.trim()) || 0;
+
+                let status = '';
+                if (quantity === 0) status = 'out';
+                else if (quantity <= 2) status = 'critical';
+                else if (quantity < minQuantity) status = 'low';
+                else status = 'ok';
+
+                const matchesSearch = name.includes(searchTerm) || barcode.includes(searchTerm) || location.includes(searchTerm);
+                const matchesCategory = !categoryFilter || category === categoryFilter;
+                const matchesStatus = !statusFilter || status === statusFilter;
+
+                if (matchesSearch && matchesCategory && matchesStatus) {
+                    row.dataset.matched = '1';
+                    matchedCount++;
+                } else {
+                    row.dataset.matched = '0';
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('resultsCount').textContent = matchedCount;
+            if (paginator) { paginator.currentPage = 1; paginator.render(); }
+        }
+
+        // Attach event listeners
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+        document.getElementById('statusFilter').addEventListener('change', applyFilters);
+
+        // Initialize paginator then run filters
+        window.addEventListener('DOMContentLoaded', function() {
+            paginator = new Paginator({
+                tableBody: 'tbody',
+                pageInfo: 'pageInfo',
+                controls: 'paginationControls',
+                rowsPerPage: 'rowsPerPage',
+                defaultRows: 10
+            });
+            applyFilters();
+        });
+
+        // ============================================
+        // EXPORT TO CSV FUNCTIONALITY
+        // ============================================
+        
+        document.getElementById('exportCSV').addEventListener('click', function() {
+            const rows = document.querySelectorAll('tbody tr');
+            const visibleRows = Array.from(rows).filter(row => row.dataset.matched === '1' && row.children.length >= 7);
+
+            if (visibleRows.length === 0) {
+                showToast('No items to export!', 'warning');
+                return;
+            }
+            
+            // CSV Header
+            let csv = 'Barcode,Name,Category,Location,Quantity,Min Quantity,Status\n';
+            
+            // CSV Rows
+            visibleRows.forEach(row => {
+                const cells = row.children;
+                const barcode = cells[0]?.textContent.trim() || '';
+                const name = cells[1]?.textContent.trim() || '';
+                const category = cells[2]?.textContent.trim() || '';
+                const location = cells[3]?.textContent.replace(/🗺️|📍/g, '').trim() || '';
+                const quantity = cells[4]?.textContent.trim() || '';
+                const minQuantity = cells[5]?.textContent.trim() || '';
+                const status = cells[6]?.textContent.trim().replace(/[✅⚠️❌]/g, '') || '';
+                
+                // Escape CSV
+                const escapeCsv = (str) => {
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return '"' + str.replace(/"/g, '""') + '"';
+                    }
+                    return str;
+                };
+                
+                csv += `${barcode},${escapeCsv(name)},${escapeCsv(category)},${escapeCsv(location)},${quantity},${minQuantity},${escapeCsv(status)}\n`;
+            });
+            
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `inventory_stock_${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('Exported ' + visibleRows.length + ' items to CSV!', 'success');
+        });
+    </script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/dark-mode.js"></script>
+    <script>
+        (function setActiveNav(){
+            try {
+                const path = window.location.pathname;
+                document.querySelectorAll('.navbar-nav .nav-link').forEach(a => {
+                    if (a.getAttribute('href') === path) a.classList.add('active'); else a.classList.remove('active');
+                });
+            } catch(e){ /* ignore */ }
+        })();
+    </script>
+</body>
+</html>

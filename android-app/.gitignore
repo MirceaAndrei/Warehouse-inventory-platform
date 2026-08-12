@@ -1,0 +1,32 @@
+# Android
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+
+# Gradle
+.gradle/
+build/
+*/build/
+
+# Local configuration
+local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Generated files
+bin/
+gen/
+out/
+
+# Keystore
+*.jks
+*.keystore
+
+# OS
+.DS_Store
+Thumbs.db

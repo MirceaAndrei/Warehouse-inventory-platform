@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/theme.css">
+</head>
+<body>
+<div th:replace="fragments/header :: navbar"></div>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0"><i class="fas fa-user-circle me-2"></i>My Profile</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="alert-container"></div>
+
+                        <!-- User Info -->
+                        <div class="mb-4">
+                            <h5>Account Information</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong><i class="fas fa-user me-2"></i>Username:</strong></td>
+                                    <td id="profile-username"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-envelope me-2"></i>Email:</strong></td>
+                                    <td id="profile-email"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-shield-alt me-2"></i>Role:</strong></td>
+                                    <td><span id="profile-role" class="badge bg-info"></span></td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <hr>
+
+                        <!-- Change Password Form -->
+                        <h5>Change Password</h5>
+                        <div id="password-required-alert" class="alert alert-warning" style="display: none;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Password change required!</strong> Your password was reset by an administrator.
+                        </div>
+
+                        <form id="changePasswordForm">
+                            <div class="mb-3">
+                                <label class="form-label">Current Password *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                    <input type="password" class="form-control" id="oldPassword" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">New Password *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                    <input type="password" class="form-control" id="newPassword" required 
+                                           minlength="6">
+                                </div>
+                                <small class="text-muted">Minimum 6 characters</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Confirm New Password *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                    <input type="password" class="form-control" id="confirmPassword" required>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-save me-2"></i>Change Password
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        // Load user profile
+        const user = Auth.getUser();
+        document.getElementById('profile-username').textContent = user.username;
+        document.getElementById('profile-email').textContent = user.email;
+        document.getElementById('profile-role').textContent = user.role;
+
+        // Show warning if password change is required
+        if (user.mustChangePassword) {
+            document.getElementById('password-required-alert').style.display = 'block';
+        }
+
+        // Handle password change form
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const oldPassword = document.getElementById('oldPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validate passwords match
+            if (newPassword !== confirmPassword) {
+                showAlert('New passwords do not match', 'danger');
+                return;
+            }
+
+            // Validate password strength
+            if (newPassword.length < 6) {
+                showAlert('Password must be at least 6 characters', 'danger');
+                return;
+            }
+
+            try {
+                const response = await Auth.fetchWithAuth('http://localhost:8082/api/auth/change-password', {
+                    method: 'POST',
+                    body: JSON.stringify({ oldPassword, newPassword })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('Password changed successfully!', 'success');
+                    
+                    // Clear mustChangePassword flag
+                    sessionStorage.setItem('mustChangePassword', 'false');
+                    
+                    // Clear form
+                    document.getElementById('changePasswordForm').reset();
+                    
+                    // Hide warning
+                    document.getElementById('password-required-alert').style.display = 'none';
+                    
+                    // Redirect to inventory after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/inventory';
+                    }, 2000);
+                } else {
+                    showAlert(data.error || 'Failed to change password', 'danger');
+                }
+            } catch (error) {
+                showAlert('Failed to change password. Please try again.', 'danger');
+            }
+        });
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+
+        // Display username in header dropdown
+        if (user && user.username) {
+            const info = document.getElementById('username-info');
+            if (info) info.textContent = user.username;
+        }
+    </script>
+        <script>
+            (function setActiveNav(){
+                try {
+                    const path = window.location.pathname;
+                    document.querySelectorAll('.navbar-nav .nav-link').forEach(a => {
+                        if (a.getAttribute('href') === path) a.classList.add('active'); else a.classList.remove('active');
+                    });
+                } catch(e){/* ignore */}
+            })();
+        </script>
+    <script src="/js/dark-mode.js"></script>
+</body>
+</html>

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction History</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/theme.css">
+    <style>
+        .page-hero {
+            background: linear-gradient(135deg, #1a1d2e 0%, #16213e 60%, #0f3460 100%);
+            color: #fff;
+            border-radius: 1rem;
+            border: 1px solid rgba(102, 126, 234, 0.25);
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.12);
+        }
+        .page-hero .pill-badge {
+            background: rgba(255,255,255,.12);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,.2);
+            font-size: 0.75rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .stat-card {
+            border: 0;
+            border-radius: 1rem;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .table thead th {
+            background: var(--table-header-bg, #f1f4f9);
+            border-bottom: 0;
+            font-size: .82rem;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+        /* Transaction type badges — explicit colors, no Bootstrap badge dependency */
+        .tx-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            padding: 4px 11px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .tx-in     { background: linear-gradient(135deg, #10b981, #059669); color: #fff !important; }
+        .tx-out    { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff !important; }
+        .tx-adjust { background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f1117 !important; }
+        .tx-other  { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff !important; }
+        .src-badge {
+            display: inline-flex; align-items: center;
+            font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px;
+            padding: 3px 9px; border-radius: 20px; text-transform: uppercase; white-space: nowrap;
+        }
+        .src-web     { background: linear-gradient(135deg,#6366f1,#4f46e5); color:#fff !important; }
+        .src-android { background: linear-gradient(135deg,#14b8a6,#0d9488); color:#fff !important; }
+        .src-offline { background: linear-gradient(135deg,#f59e0b,#d97706); color:#0f1117 !important; }
+        .src-unknown { background: rgba(128,128,128,0.2); color:inherit !important; }
+    </style>
+</head>
+<body>
+<div th:replace="fragments/header :: navbar"></div>
+
+    <div class="container mt-4">
+        <div class="page-hero p-4 mb-4 shadow-sm">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                <div>
+                    <div class="mb-2">
+                        <span class="pill-badge me-2"><i class="fas fa-exchange-alt me-1"></i>Activity Log</span>
+                        <span class="pill-badge">Live history</span>
+                    </div>
+                    <h2 class="mb-1"><i class="fas fa-exchange-alt me-2"></i>Transaction History</h2>
+                    <p class="mb-0 text-white-50">Track stock movement, scan activity, and manual adjustments in one place.</p>
+                </div>
+                <button class="btn btn-light text-primary" onclick="location.reload()">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Total Transactions</div>
+                        <div class="stat-value text-primary" th:text="${transactionCount}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Incoming</div>
+                        <div class="stat-value text-success" th:text="${incomingCount}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Outgoing</div>
+                        <div class="stat-value text-danger" th:text="${outgoingCount}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Adjustments</div>
+                        <div class="stat-value" style="color:#f59e0b" th:text="${adjustCount ?: 0}">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart: Last 7 Days (hidden by default) -->
+        <div class="mb-3 text-end">
+            <button class="btn btn-outline-primary btn-sm" id="toggleChartBtn" onclick="toggleChart()">
+                <i class="fas fa-chart-bar me-1"></i>Show Chart
+            </button>
+        </div>
+        <div class="card shadow-sm mb-3" id="chartCard" style="display:none">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="fas fa-chart-bar me-2 text-primary"></i>Activity — Last 7 Days</h6>
+                <canvas id="txChart" height="90"></canvas>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="searchInput" placeholder="Search by item, barcode or device...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="typeFilter">
+                            <option value="">All Types</option>
+                            <option value="IN">IN</option>
+                            <option value="OUT">OUT</option>
+                            <option value="ADJUST">ADJUST</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-primary w-100" onclick="applyFilters()">
+                            <i class="fas fa-filter me-2"></i>Filter
+                        </button>
+                    </div>
+                    <div class="col-md-2 text-md-end text-center">
+                        <small class="text-muted"><i class="fas fa-list me-1"></i><span class="badge bg-primary" id="resultsCount">0</span> items</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="transactionsTableView">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Item</th>
+                                <th>Barcode</th>
+                                <th>Type</th>
+                                <th>Quantity</th>
+                                <th>Source</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsTable">
+                            <tr th:if="${#lists.isEmpty(transactions)}">
+                                <td colspan="7" class="text-center text-muted py-5">
+                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                    <p class="mb-0">No transactions found</p>
+                                </td>
+                            </tr>
+                            <tr th:each="tx : ${transactions}" data-matched="1" th:attr="data-search=${(tx.item != null ? tx.item.name : 'N/A') + ' ' + (tx.item != null ? tx.item.barcode : 'N/A') + ' ' + (tx.deviceId != null ? tx.deviceId : 'N/A')},data-type=${tx.type}">
+                                <td th:text="${#temporals.format(tx.timestamp, 'dd MMM yyyy, HH:mm')}"></td>
+                                <td>
+                                    <div class="fw-semibold" th:text="${tx.item != null ? tx.item.name : 'N/A'}"></div>
+                                    <small class="text-muted" th:text="${tx.notes != null ? tx.notes : ''}"></small>
+                                </td>
+                                <td><code th:text="${tx.item != null ? tx.item.barcode : 'N/A'}"></code></td>
+                                <td>
+                                    <th:block th:switch="${tx.type}">
+                                        <span th:case="'IN'"     class="tx-badge tx-in"><i class="fas fa-arrow-down me-1"></i>IN</span>
+                                        <span th:case="'OUT'"    class="tx-badge tx-out"><i class="fas fa-arrow-up me-1"></i>OUT</span>
+                                        <span th:case="'ADJUST'" class="tx-badge tx-adjust"><i class="fas fa-sliders-h me-1"></i>ADJ</span>
+                                        <span th:case="*"        class="tx-badge tx-other" th:text="${tx.type}"></span>
+                                    </th:block>
+                                </td>
+                                <td th:text="${tx.quantity}"></td>
+                                <td>
+                                    <span th:if="${tx.deviceId == 'WEB-UI'}" class="src-badge src-web">
+                                        <i class="fas fa-globe me-1"></i>Web UI
+                                    </span>
+                                    <span th:if="${tx.deviceId == null}" class="src-badge src-unknown">
+                                        <i class="fas fa-question me-1"></i>Unknown
+                                    </span>
+                                    <span th:if="${tx.deviceId != null and tx.deviceId.startsWith('OFFLINE')}" class="src-badge src-offline">
+                                        <i class="fas fa-wifi me-1"></i>Offline Sync
+                                    </span>
+                                    <span th:if="${tx.deviceId != null and tx.deviceId != 'WEB-UI' and !tx.deviceId.startsWith('OFFLINE')}" class="src-badge src-android">
+                                        <i class="fas fa-mobile-alt me-1"></i>Android
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger delete-tx-btn"
+                                            th:attr="data-id=${tx.id},data-name=${tx.item != null ? tx.item.name : 'Item'}"
+                                            onclick="showDeleteTxModal(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination Footer -->
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small">Rows per page:</span>
+                        <select class="form-select form-select-sm" id="rowsPerPage" style="width:75px">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                        <span class="text-muted small ms-2">Showing <strong id="pageInfo">–</strong> items</span>
+                    </div>
+                    <div id="paginationControls"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="/js/toast.js"></script>
+    <script src="/js/paginator.js"></script>
+    <script src="/js/auth.js?v=2024-11-24"></script>
+    <script>
+        // Ascunde butoanele Delete pentru EMPLOYEE
+        window.addEventListener('load', function() {
+            console.log('[DEBUG] transactions.html loaded');
+            // Așteaptă ca auth.js să fie încărcat complet
+            if (typeof getUser === 'function') {
+                const user = getUser();
+                console.log('[USER] Role:', user ? user.role : 'NULL');
+
+                if (user && user.role === 'EMPLOYEE') {
+                    const deleteBtns = document.querySelectorAll('.delete-tx-btn');
+                    deleteBtns.forEach(btn => btn.style.display = 'none');
+                    console.log('✅ Delete buttons hidden for EMPLOYEE');
+                }
+            } else {
+                console.error('Function getUser() is not available!');
+            }
+        });
+        // Delete Transaction flow using Bootstrap modal
+        let pendingTxDelete = null;
+        function showDeleteTxModal(buttonOrId, itemName) {
+            if (typeof buttonOrId === 'object') {
+                pendingTxDelete = buttonOrId.getAttribute('data-id');
+                document.getElementById('deleteTxItemName').textContent = buttonOrId.getAttribute('data-name') || '';
+            } else {
+                pendingTxDelete = buttonOrId;
+                document.getElementById('deleteTxItemName').textContent = itemName || '';
+            }
+            var modal = new bootstrap.Modal(document.getElementById('deleteTxModal'));
+            modal.show();
+        }
+
+        async function confirmDeleteTx() {
+            if (!pendingTxDelete) return;
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const response = await fetch(`http://localhost:8082/api/transactions/${pendingTxDelete}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const alertPlaceholder = document.createElement('div');
+                    alertPlaceholder.innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert">Transaction deleted successfully.<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+                    document.querySelector('.container').prepend(alertPlaceholder);
+                    var modalEl = document.getElementById('deleteTxModal');
+                    bootstrap.Modal.getInstance(modalEl).hide();
+                    setTimeout(() => location.reload(), 700);
+                } else if (response.status === 403) {
+                    showToast('You do not have permission to delete transactions!', 'error');
+                } else {
+                    const txt = await response.text();
+                    showToast('Error deleting transaction: ' + response.status + ' - ' + txt, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting transaction:', error);
+                showToast('Connection error: ' + error.message, 'error');
+            }
+        }
+
+        var paginator = null;
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const rows = document.querySelectorAll('#transactionsTable tr[data-matched]');
+            let matchedCount = 0;
+
+            rows.forEach(row => {
+                const haystack = row.getAttribute('data-search')?.toLowerCase() || '';
+                const rowType = row.getAttribute('data-type') || '';
+                const matchesSearch = !searchTerm || haystack.includes(searchTerm);
+                const matchesType = !typeFilter || rowType === typeFilter;
+
+                if (matchesSearch && matchesType) {
+                    row.dataset.matched = '1';
+                    matchedCount++;
+                } else {
+                    row.dataset.matched = '0';
+                    row.style.display = 'none';
+                }
+            });
+
+            const counter = document.getElementById('resultsCount');
+            if (counter) counter.textContent = matchedCount;
+            if (paginator) { paginator.currentPage = 1; paginator.render(); }
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            paginator = new Paginator({
+                tableBody: '#transactionsTable',
+                pageInfo: 'pageInfo',
+                controls: 'paginationControls',
+                rowsPerPage: 'rowsPerPage',
+                defaultRows: 10
+            });
+            applyFilters();
+            document.getElementById('searchInput')?.addEventListener('input', applyFilters);
+            document.getElementById('typeFilter')?.addEventListener('change', applyFilters);
+        });
+    </script>
+    <script>
+        var chartInitialized = false;
+        function toggleChart() {
+            var card = document.getElementById('chartCard');
+            var btn  = document.getElementById('toggleChartBtn');
+            var visible = card.style.display !== 'none';
+            card.style.display = visible ? 'none' : '';
+            btn.innerHTML = visible
+                ? '<i class="fas fa-chart-bar me-1"></i>Show Chart'
+                : '<i class="fas fa-chart-bar me-1"></i>Hide Chart';
+            if (!visible && !chartInitialized) {
+                initChart();
+                chartInitialized = true;
+            }
+        }
+    </script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var _chartLabels = /*[[${chartLabels}]]*/ [];
+        var _chartIn     = /*[[${chartIn}]]*/ [];
+        var _chartOut    = /*[[${chartOut}]]*/ [];
+        var _chartAdj    = /*[[${chartAdj}]]*/ [];
+        var _txChart = null;
+
+        function initChart() {
+            var ctx = document.getElementById('txChart');
+            if (!ctx) return;
+
+            _txChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: _chartLabels,
+                    datasets: [
+                        { label: 'IN',     data: _chartIn,  backgroundColor: 'rgba(16,185,129,0.75)', borderRadius: 6, borderSkipped: false },
+                        { label: 'OUT',    data: _chartOut, backgroundColor: 'rgba(239,68,68,0.75)',  borderRadius: 6, borderSkipped: false },
+                        { label: 'ADJUST', data: _chartAdj, backgroundColor: 'rgba(245,158,11,0.75)', borderRadius: 6, borderSkipped: false }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, padding: 16 } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: 'rgba(128,128,128,0.1)' } }
+                    }
+                }
+            });
+
+            window.addEventListener('themeChanged', function(e) {
+                if (!_txChart) return;
+                var isDark = (e.detail && e.detail.theme === 'dark');
+                _txChart.options.scales.x.ticks = { color: isDark ? '#aab' : '#666' };
+                _txChart.options.scales.y.ticks = { color: isDark ? '#aab' : '#666', stepSize: 1, precision: 0 };
+                _txChart.options.plugins.legend.labels.color = isDark ? '#dde' : '#333';
+                _txChart.update();
+            });
+        }
+        /*]]>*/
+    </script>
+    <script src="/js/dark-mode.js"></script>
+    <script>
+        (function setActiveNav(){
+            try {
+                const path = window.location.pathname;
+                document.querySelectorAll('.navbar-nav .nav-link').forEach(a => {
+                    if (a.getAttribute('href') === path) a.classList.add('active'); else a.classList.remove('active');
+                });
+            } catch(e){/* ignore */}
+        })();
+    </script>
+        <!-- Delete Transaction Modal -->
+        <div class="modal fade" id="deleteTxModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Delete transaction for item: <strong id="deleteTxItemName"></strong>?</p>
+                        <p class="text-muted">This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmDeleteTx()">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+</body>
+</html>
