@@ -1,34 +1,42 @@
-# Gradle files
+### Java / Maven / Spring Boot ###
+target/
+*.class
+*.jar
+*.war
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+mvnw
+mvnw.cmd
+
+### IDE ###
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+### Android / Kotlin ###
+*.iml
 .gradle/
-build/
-
-# Local configuration file (sdk path, etc)
-local.properties
-
-# Log/OS Files
-*.log
-
-# Android Studio generated files and folders
-captures/
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
 .externalNativeBuild/
 .cxx/
-*.aab
 *.apk
-output-metadata.json
+*.ap_
+*.aab
 
-# IntelliJ
-*.iml
-.idea/
-misc.xml
-deploymentTargetDropDown.xml
-render.experimental.xml
+### Application secrets ###
+application-local.properties
+*.env
 
-# Keystore files
-*.jks
-*.keystore
+### H2 database files ###
+*.mv.db
+*.trace.db
 
-# Google Services (e.g. APIs or Firebase)
-google-services.json
-
-# Android Profiling
-*.hprof
+### OS files ###
+Thumbs.db
