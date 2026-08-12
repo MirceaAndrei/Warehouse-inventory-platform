@@ -199,11 +199,8 @@ InventoryApp/
 
 **2026 — National University of Science and Technology POLITEHNICA Bucharest**
 
-**Faculty of Engineering in Foreign Languages (FILS)**
-
 **Author:** Mircea-Andrei Rață
 
-**Coordinator:** Sl. dr. ing. Mitrea Dan Alexandru
 
 ---
 
