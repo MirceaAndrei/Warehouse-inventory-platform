@@ -186,7 +186,7 @@ InventoryApp/
 **Faculty of Engineering in Foreign Languages (FILS)**
 
 **Author:** Mircea-Andrei Rață
-**Coordinator:** Sl. dr. ing. Mitrea Dan Alexandru
+
 
 ---
 
