@@ -64,7 +64,7 @@ Transactions are stored locally using **Room** when the device is offline and au
 Scan → Room → Pending → WorkManager → Backend → Synced
 ```
 
-![Offline Synchronization](images/offline-sync.png)
+![Offline Synchronization](images/offline-sync.png.png)
 
 > **Transaction Synchronization State Machine & Room Inspector**
 
@@ -145,7 +145,7 @@ Example:
 jwt.secret=your-secure-random-string-here
 ```
 
-> For production environments, use a secure externalized secret instead of committing the JWT secret to the repository.
+
 
 ### Web Dashboard
 
