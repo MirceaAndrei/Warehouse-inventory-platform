@@ -176,21 +176,7 @@ The Android device and backend machine must be connected to the same network.
 
 ---
 
-## 📁 Repository Structure
 
-Ensure your `/images` folder contains the required project screenshots:
-
-```text
-InventoryApp/
-├── backend/
-├── android-app/
-├── web-dashboard/
-├── images/
-│   ├── architecture.png
-│   ├── offline-sync.png
-│   ├── dashboard.png
-│   └── tech-stack.png
-└── README.md
 ```
 
 ---
